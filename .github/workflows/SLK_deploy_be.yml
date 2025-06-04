@@ -136,7 +136,7 @@ jobs:
           host: ${{inputs.SERVER_HOST}}
           port: ${{inputs.SERVER_POST}}
           username: ${{inputs.SERVER_USER}}
-          key: ${{ secrets.SSH_PRIVATE_KEY_TX }}
+          key: ${{secrets.SSH_PRIVATE_KEY}}
           script: |
             echo "Executing command on remote server..."
             docker images
