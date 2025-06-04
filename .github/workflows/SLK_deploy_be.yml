@@ -18,14 +18,43 @@ on:
         required: true
 
 jobs:
-  deploy:
+  prepare deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy application
+      - name: Echo parameters
         run: |
           echo "Deploying ${{ inputs.app_name }} to ${{ inputs.environment }}"
           echo "Using token: ${{ secrets.DEPLOY_TOKEN }}"
           echo "Using token CICD: ${{ secrets.CICD_TOKEN }}"
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 22
+
+      - name: Prepare Documents
+        run: |
+          echo "Local files:"
+          ls -la
+          mkdir -p artifacts
+
+          echo "Copying files to artifacts directory..."
+          cd BE
+          cp .env ../artifacts/.env  
+          mv .env ../artifacts/my_env  # 将 .env 重命名为 my_env
+          rsync -av --progress --exclude='artifacts' . ../artifacts/
+          echo "Files in artifacts 0:"
+          ls -la ../artifacts/
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-artifacts
+          path: |
+            artifacts
+          retention-days: 1
+        env:
+          ACTIONS_STEP_DEBUG: true
