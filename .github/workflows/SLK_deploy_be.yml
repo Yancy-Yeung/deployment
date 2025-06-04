@@ -9,16 +9,38 @@ on:
       app_name:
         required: true
         type: string
+      image_name:
+        required: true
+        type: string
+      SERVER_HOST:
+        required: false
+        type: string
+      SERVER_USER:
+        required: false
+        type: string
+      SERVER_POST:
+        required: false
+        type: number
+      HTTPS_PORT:
+        required: false
+        type: string
+      TCP_PORT:
+        required: false
+        type: string
+      UDP_PORT:
+        required: false
+        type: string
+
     secrets:
-      CICD_TOKEN:
-        required: true # 必须传递
-      token:
-        required: false # 可选传递（如果不需要可删除）
-      DEPLOY_TOKEN: # 您之前传递的另一个secret
+      DOCKERHUB_USR:
+        required: true
+      DOCKERHUB_PWD:
+        required: true
+      SSH_PRIVATE_KEY:
         required: true
 
 jobs:
-  Prepare-deploy:
+  prepare-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,9 +48,11 @@ jobs:
 
       - name: Echo parameters
         run: |
-          echo "Deploying ${{ inputs.app_name }} to ${{ inputs.environment }}"
-          echo "Using token: ${{ secrets.DEPLOY_TOKEN }}"
-          echo "Using token CICD: ${{ secrets.CICD_TOKEN }}"
+          echo "Deploying input 1: ${{ inputs.app_name }} to ${{ inputs.environment }}"
+          echo "Deploying input 2: ${{ inputs.SERVER_HOST }} to ${{ inputs.SERVER_POST }}"
+          echo "Using user: ${{ secrets.DOCKERHUB_USR }}"
+          echo "Using pass: ${{ secrets.DOCKERHUB_PWD }}"
+          echo "Using Key: ${{ secrets.SSH_PRIVATE_KEY }}"
 
       - name: Set up node
         uses: actions/setup-node@v2
@@ -58,3 +82,82 @@ jobs:
           retention-days: 1
         env:
           ACTIONS_STEP_DEBUG: true
+
+  build-image:
+    runs-on: ubuntu-latest
+    needs: build-app
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: app-artifacts
+          path: artifacts
+        env:
+          ACTIONS_STEP_DEBUG: true
+
+      - name: Check artifacts
+        run: |
+          echo "Check artifacts..."
+          find artifacts -name ".env"  # 使用 find 命令进行更广泛的搜索
+          echo "Files in artifacts 0:"
+          ls -la
+          ls -la artifacts
+
+      - name: Build Docker image
+        run: |
+          cd artifacts
+          echo "Build Docker image...1"
+          mv my_env .env
+          echo "Build Docker image...2"
+          ls -la
+          docker buildx build -t ${{inputs.app_name}} .
+
+      - name: Push DockerImage to Docker Hub
+        run: |
+          docker login -u ${{secrets.DOCKERHUB_USR}} -p ${{secrets.DOCKERHUB_PWD}}
+          docker tag ${{inputs.app_name}} ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
+          docker push ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
+
+  delete-artifacts:
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - uses: geekyeggo/delete-artifact@v5
+        with:
+          name: app-artifacts
+
+  deploy-image:
+    runs-on: ubuntu-latest
+    needs: build-image
+    env:
+      HTTPS_PORT: "9801:9801"
+      TCP_PORT: "3001:3001"
+      UDP_PORT: "3002:3002"
+      SERVER_HOST: usa.dreams-studio.com
+      SERVER_USER: root
+      SERVER_POST: 22
+    steps:
+      - name: Deploy Docker image to ${{inputs.SERVER_HOST}}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{inputs.SERVER_HOST}}
+          port: ${{inputs.SERVER_POST}}
+          username: ${{inputs.SERVER_USER}}
+          key: ${{ secrets.SSH_PRIVATE_KEY_TX }}
+          script: |
+            echo "Executing command on remote server..."
+            docker images
+            docker rm -f ${{inputs.app_name}} || true
+            docker rmi ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest || true
+            docker pull ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest || true
+            docker run -idt \
+            --name ${{inputs.app_name}} \
+            --restart always \
+            -p ${{inputs.HTTPS_PORT}} \
+            -p ${{inputs.TCP_PORT}} \
+            -p ${{inputs.UDP_PORT}} \
+            -v /root/docker/certbot/etc/letsencrypt:/etc/letsencrypt:ro \
+            -e NODE_ENV=production \
+            -e CERT_PATH=/etc/letsencrypt/live/usa.dreams-studio.com \
+            -v /root/docker/nestjs001/logs:/app/logs \
+            ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
