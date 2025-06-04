@@ -1,4 +1,4 @@
-name: 00 USA BackEnd Nestjs
+name: Public Deploy
 
 on:
   workflow_call: # 允许被其他工作流调用
@@ -17,18 +17,9 @@ on:
       DEPLOY_TOKEN: # 您之前传递的另一个secret
         required: true
 
-env:
-  PROJECT_NAME: nestjs001
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CICD_TOKEN }}
-
       - name: Deploy application
         run: |
           echo "Deploying ${{ inputs.app_name }} to ${{ inputs.environment }}"
