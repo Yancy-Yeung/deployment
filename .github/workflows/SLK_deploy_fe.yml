@@ -143,5 +143,5 @@ jobs:
             -p ${{inputs.HTTP_PORT}} \
             -p ${{inputs.HTTPS_PORT}} \
             -e API_BASE_VER=${{inputs.environment}} \
-            -e API_BASE_URL=${{input.API_BASE_URL}} \
+            -e API_BASE_URL=${{inputs.API_BASE_URL}} \
             ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
