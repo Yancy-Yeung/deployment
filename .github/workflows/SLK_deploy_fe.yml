@@ -1,4 +1,4 @@
-name: SLK Deploy BE
+name: SLK Deploy FE
 
 on:
   workflow_call: # 允许被其他工作流调用
@@ -21,13 +21,13 @@ on:
       SERVER_POST:
         required: false
         type: number
+      HTTP_PORT:
+        required: false
+        type: string
       HTTPS_PORT:
         required: false
         type: string
-      TCP_PORT:
-        required: false
-        type: string
-      UDP_PORT:
+      API_BASE_URL:
         required: false
         type: string
 
@@ -59,29 +59,36 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install Dependencies
+        run: |
+          ls -l
+          cd FE
+          npm install
+
+      - name: Build App
+        run: |
+          ls -l
+          cd FE     
+          npm run build
+
       - name: Prepare Documents
         run: |
-          echo "Local files:"
-          ls -la
+          cd FE
           mkdir -p artifacts
-
-          echo "Copying files to artifacts directory..."
-          cd BE
-          cp .env ../artifacts/.env  
-          mv .env ../artifacts/my_env  # 将 .env 重命名为 my_env
-          rsync -av --progress --exclude='artifacts' . ../artifacts/
-          echo "Files in artifacts 0:"
-          ls -la ../artifacts/
+          ls -l
+          cp Dockerfile ./artifacts/
+          cp env.sh ./artifacts/
+          cp -r conf.d ./artifacts/
+          cp -r build ./artifacts/
+          ls -l artifacts
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
           name: app-artifacts
           path: |
-            artifacts
-          retention-days: 1
-        env:
-          ACTIONS_STEP_DEBUG: true
+            # -----------------------------take case here
+            FE/artifacts
 
   build-image:
     runs-on: ubuntu-latest
@@ -92,25 +99,12 @@ jobs:
         with:
           name: app-artifacts
           path: artifacts
-        env:
-          ACTIONS_STEP_DEBUG: true
-
-      - name: Check artifacts
-        run: |
-          echo "Check artifacts..."
-          find artifacts -name ".env"  # 使用 find 命令进行更广泛的搜索
-          echo "Files in artifacts 0:"
-          ls -la
-          ls -la artifacts
 
       - name: Build Docker image
         run: |
           cd artifacts
-          echo "Build Docker image...1"
-          mv my_env .env
-          echo "Build Docker image...2"
-          ls -la
-          docker buildx build -t ${{inputs.app_name}} .
+          ls -l          
+          docker buildx build -t $PROJECT_NAME .
 
       - name: Push DockerImage to Docker Hub
         run: |
@@ -146,11 +140,8 @@ jobs:
             docker run -idt \
             --name ${{inputs.app_name}} \
             --restart always \
+            -p ${{inputs.HTTP_PORT}} \
             -p ${{inputs.HTTPS_PORT}} \
-            -p ${{inputs.TCP_PORT}} \
-            -p ${{inputs.UDP_PORT}} \
-            -v /root/docker/certbot/etc/letsencrypt:/etc/letsencrypt:ro \
-            -e NODE_ENV=${{inputs.environment}} \
-            -e CERT_PATH=/etc/letsencrypt/live/usa.dreams-studio.com \
-            -v /root/docker/nestjs001/logs:/app/logs \
+            -e API_BASE_VER=${{inputs.environment}} \
+            -e API_BASE_URL=${{input.API_BASE_URL}} \
             ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
