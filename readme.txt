@@ -1,1 +1,1 @@
-个人github 而言，中心库需要 public
+个人github 而言，中心库需要 public, 才能被调用CICD pipeline
