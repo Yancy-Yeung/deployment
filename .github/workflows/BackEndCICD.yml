@@ -10,7 +10,11 @@ on:
         required: true
         type: string
     secrets:
-      DEPLOY_TOKEN:
+      CICD_TOKEN:
+        required: true # 必须传递
+      token:
+        required: false # 可选传递（如果不需要可删除）
+      DEPLOY_TOKEN: # 您之前传递的另一个secret
         required: true
 
 env:
