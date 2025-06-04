@@ -20,6 +20,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    steps:
       - name: Deploy application
         run: |
           echo "Deploying ${{ inputs.app_name }} to ${{ inputs.environment }}"
