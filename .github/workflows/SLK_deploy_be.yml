@@ -18,7 +18,7 @@ on:
         required: true
 
 jobs:
-  prepare deploy:
+  Prepare-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
