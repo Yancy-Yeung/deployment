@@ -21,6 +21,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy application
         run: |
           echo "Deploying ${{ inputs.app_name }} to ${{ inputs.environment }}"
