@@ -1,4 +1,4 @@
-name: Public Deploy
+name: Deploy BE
 
 on:
   workflow_call: # 允许被其他工作流调用
