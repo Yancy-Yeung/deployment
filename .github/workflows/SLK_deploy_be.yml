@@ -150,7 +150,7 @@ jobs:
             -p ${{inputs.TCP_PORT}} \
             -p ${{inputs.UDP_PORT}} \
             -e NODE_ENV=${{inputs.environment}} \
-            -e CERT_PATH=/etc/letsencrypt/live/usa.dreams-studio.com \
+            -e CERT_PATH=/etc/letsencrypt/live/${{inputs.SERVER_HOST}} \
             -v /root/docker/certbot/etc/letsencrypt:/etc/letsencrypt:ro \
-            -v /root/docker/nestjs001/logs:/app/logs \
+            -v /root/docker/${{inputs.app_name}}/logs:/app/logs \
             ${{secrets.DOCKERHUB_USR}}/${{inputs.app_name}}:latest
