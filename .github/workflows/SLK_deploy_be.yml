@@ -24,6 +24,9 @@ on:
       HTTPS_PORT:
         required: false
         type: string
+      HTTP_PORT:
+        required: false
+        type: string
       TCP_PORT:
         required: false
         type: string
@@ -147,6 +150,7 @@ jobs:
             --name ${{inputs.app_name}} \
             --restart always \
             -p ${{inputs.HTTPS_PORT}} \
+            -p ${{inputs.HTTP_PORT}} \
             -p ${{inputs.TCP_PORT}} \
             -p ${{inputs.UDP_PORT}} \
             -e NODE_ENV=${{inputs.environment}} \
